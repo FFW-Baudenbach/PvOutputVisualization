@@ -107,7 +107,7 @@ def index():
 <style>
 
 body{
-background:#121212;
+background:#2D3036;
 color:white;
 font-family:Arial;
 text-align:center;
@@ -124,7 +124,7 @@ margin-bottom:30px;
 }
 
 .card{
-background:#1e1e1e;
+background:#42454B;
 padding:20px;
 border-radius:10px;
 box-shadow:0 0 10px rgba(0,0,0,0.5);
