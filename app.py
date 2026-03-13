@@ -251,4 +251,4 @@ setInterval(loadData,300000); // refresh every 5 minutes
 
 
 
-app.run(host="0.0.0.0", port=5000)
+app.run(host="0.0.0.0", port=5000, threaded=True)
