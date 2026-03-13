@@ -213,7 +213,7 @@ let chart;
 
 function loadData(){
 
-    fetch('/data')
+    fetch('data')
     .then(r=>r.json())
     .then(data=>{
 
