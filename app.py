@@ -116,7 +116,7 @@ def index():
 <html>
 <head>
 
-<title>Solar Dashboard</title>
+<title>PV Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -177,7 +177,7 @@ canvas{
 </head>
 <body>
 
-<h1>☀ Solar Produktion</h1>
+<h1>☀ PV Produktion</h1>
 
 <div class="grid">
 
