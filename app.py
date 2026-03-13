@@ -4,6 +4,7 @@ import os
 from flask import Flask, jsonify, render_template_string
 import requests
 import time
+import threading
 from dotenv import load_dotenv
 
 load_dotenv()  # load .env locally
@@ -18,6 +19,7 @@ app = Flask(__name__)
 
 cache = None
 cache_time = 0
+cache_lock = threading.Lock()
 
 
 def fetch_pvoutput():
@@ -78,14 +80,14 @@ def fetch_pvoutput():
 
 def get_data():
     global cache, cache_time
+    with cache_lock:
+        if cache and time.time() - cache_time < 300: # Cache 5mins (rate limiting, max. 12 calls per hour)
+            return cache
 
-    if cache and time.time() - cache_time < 300: # Cache 5mins (rate limiting, max. 12 calls per hour)
+        cache = fetch_pvoutput()
+        cache_time = time.time()
+
         return cache
-
-    cache = fetch_pvoutput()
-    cache_time = time.time()
-
-    return cache
 
 
 @app.route("/data")
