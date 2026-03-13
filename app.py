@@ -168,7 +168,7 @@ h1{
     display: grid;
     grid-template-columns: repeat(2, 1fr); /* two columns */
     gap: 30px;                             /* space between cards */
-    max-width: 850px;                       /* max total width of both cards + gap */
+    max-width: 1000px;                       /* max total width of both cards + gap */
     margin: 0 auto 50px;                    /* center horizontally, 50px margin-bottom */
 }
 
@@ -177,7 +177,7 @@ h1{
     padding:20px;
     border-radius:10px;
     box-shadow:0 0 10px rgba(0,0,0,0.5);
-    max-width: 400px
+    max-width: 500px
 }
 
 .value{
@@ -189,7 +189,7 @@ h1{
 .chart-container{
     grid-column: 1 / -1;
     margin: 0 auto 30px auto;
-    max-width: 800px;
+    max-width: 1000px;
 }
 
 canvas{
