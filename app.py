@@ -25,6 +25,8 @@ cache_lock = threading.Lock()
 def fetch_pvoutput():
     today = datetime.date.today().strftime("%Y%m%d")
 
+    print(f"[{datetime.datetime.now()}] Fetching PVOutput data...")
+
     headers = {
         "X-Pvoutput-Apikey": API_KEY,
         "X-Pvoutput-SystemId": SYSTEM_ID
@@ -32,7 +34,7 @@ def fetch_pvoutput():
 
     # ----- DAILY SUMMARY -----
     r1 = requests.get(
-        "https://pvoutput.org/service/r2/getoutput.jsp?d={today}",
+        f"https://pvoutput.org/service/r2/getoutput.jsp?d={today}",
         headers=headers
     )
 
