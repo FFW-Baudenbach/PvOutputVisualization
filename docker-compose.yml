@@ -1,0 +1,10 @@
+services:
+  pvoutputvisualization:
+    image: odin568/pvoutputvisualization:latest
+    container_name: pvoutputvisualization
+    ports:
+      - "5000:5000"
+    restart: always
+    environment:
+      - PVOUTPUT_SYSTEM_ID=112047
+      - PVOUTPUT_API_KEY=<enterapikey>
