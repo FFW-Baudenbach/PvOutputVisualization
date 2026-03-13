@@ -62,7 +62,7 @@ def fetch_pvoutput():
     )
 
     times = []
-    power = []
+    powers = []
 
     for line in r2.text.strip().split(";"):
 
@@ -72,16 +72,18 @@ def fetch_pvoutput():
             continue
 
         times.append(parts[1])
-        power.append(float(parts[4]))
+        powers.append(float(parts[4]))
 
     times.reverse()
-    power.reverse()
+    powers.reverse()
 
-    current = power[-1] if power else 0
+    current = powers[-1] if powers else 0
+
+    times, powers = trim_zero_edges(times, powers)
 
     return {
         "times": times,
-        "power": power,
+        "power": powers,
         "total_kwh": total_kwh,
         "peak": float(peak_w/1000),
         "peak_time": peak_time,
@@ -99,6 +101,34 @@ def get_data():
         cache_time = time.time()
 
         return cache
+
+
+def trim_zero_edges(t_arr, p_arr):
+    """
+    Keep only the first and last zero at the edges, remove intermediate leading/trailing zeros.
+    t_arr and p_arr must have the same length.
+    """
+    if not p_arr or not t_arr or len(t_arr) != len(p_arr):
+        return t_arr, p_arr
+
+    # Find first non-zero index
+    first = 0
+    while first < len(p_arr) and p_arr[first] == 0:
+        first += 1
+    first = max(first - 1, 0)  # keep one zero at the start
+
+    # Find last non-zero index
+    last = len(p_arr) - 1
+    while last >= 0 and p_arr[last] == 0:
+        last -= 1
+    last = min(last + 1, len(p_arr)-1)  # keep one zero at the end
+
+    # Slice arrays
+    trimmed_t = t_arr[first:last+1]
+    trimmed_p = p_arr[first:last+1]
+
+    return trimmed_t, trimmed_p
+
 
 @app.route("/health")
 def health():
@@ -118,7 +148,7 @@ def index():
 
 <title>PV Dashboard</title>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
 <style>
 
@@ -127,16 +157,19 @@ body{
     color:white;
     font-family:Arial;
     text-align:center;
-    margin:20px;
+    margin: 20px 50px 20px 50px;
 }
 
-h1{margin-bottom:30px;}
-
-.grid{
-    display:grid;
-    grid-template-columns:repeat(2, 1fr); /* 2 cards per row */
-    gap:20px;
+h1{
     margin-bottom:30px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* two columns */
+    gap: 30px;                             /* space between cards */
+    max-width: 850px;                       /* max total width of both cards + gap */
+    margin: 0 auto 50px;                    /* center horizontally, 50px margin-bottom */
 }
 
 .card{
@@ -144,6 +177,7 @@ h1{margin-bottom:30px;}
     padding:20px;
     border-radius:10px;
     box-shadow:0 0 10px rgba(0,0,0,0.5);
+    max-width: 400px
 }
 
 .value{
@@ -153,9 +187,9 @@ h1{margin-bottom:30px;}
 
 /* Chart container spans both cards */
 .chart-container{
-    grid-column: 1 / -1; /* full width of grid */
+    grid-column: 1 / -1;
     margin: 0 auto 30px auto;
-    max-width: 700px;     /* roughly 2 card widths */
+    max-width: 800px;
 }
 
 canvas{
@@ -239,7 +273,20 @@ function loadData(){
                 },
                 options:{
                     plugins:{legend:{display:false}},
-                    scales:{x:{ticks:{color:"white"}}, y:{ticks:{color:"white"}}}
+                    scales: {
+                        x: {
+                            ticks: { color: "white" },           // x-axis labels
+                            grid: {
+                                color: "#42454B"                 // x-axis grid lines
+                            }
+                        },
+                        y: {
+                            ticks: { color: "white" },           // y-axis labels
+                            grid: {
+                                color: "#42454B"                 // y-axis grid lines
+                            }
+                        }
+                    }
                 }
             });
         } else {
