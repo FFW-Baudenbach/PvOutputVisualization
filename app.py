@@ -107,37 +107,53 @@ def index():
 <style>
 
 body{
-background:#2D3036;
-color:white;
-font-family:Arial;
-text-align:center;
-margin:20px;
+    background:#2D3036;
+    color:white;
+    font-family:Arial;
+    text-align:center;
+    margin:20px;
 }
 
 h1{margin-bottom:30px;}
 
 .grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-gap:20px;
-margin-bottom:30px;
+    display:grid;
+    grid-template-columns:repeat(2, 1fr); /* 2 cards per row */
+    gap:20px;
+    margin-bottom:30px;
 }
 
 .card{
-background:#42454B;
-padding:20px;
-border-radius:10px;
-box-shadow:0 0 10px rgba(0,0,0,0.5);
+    background:#42454B;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.5);
 }
 
 .value{
-font-size:28px;
-font-weight:bold;
+    font-size:28px;
+    font-weight:bold;
+}
+
+/* Chart container spans both cards */
+.chart-container{
+    grid-column: 1 / -1; /* full width of grid */
+    margin: 0 auto 30px auto;
+    max-width: 700px;     /* roughly 2 card widths */
 }
 
 canvas{
-max-width:1000px;
-margin:auto;
+    width:100% !important;
+    height:400px !important;
+}
+
+@media (max-width: 600px){
+    .grid{
+        grid-template-columns: 1fr; /* stack cards on small screens */
+    }
+    .chart-container{
+        max-width: 100%;
+    }
 }
 
 </style>
@@ -171,76 +187,64 @@ margin:auto;
 
 </div>
 
+<div class="chart-container">
 <canvas id="chart"></canvas>
+</div>
 
 <script>
 
-let chart
+let chart;
 
 function loadData(){
 
-fetch('/data')
-.then(r=>r.json())
-.then(data=>{
+    fetch('/data')
+    .then(r=>r.json())
+    .then(data=>{
 
-document.getElementById("current").innerHTML =
-data.current + " kW"
+        document.getElementById("current").innerHTML = data.current + " kW";
+        document.getElementById("total").innerHTML = data.total_kwh + " kWh";
+        document.getElementById("peak").innerHTML = data.peak + " kW";
+        document.getElementById("peaktime").innerHTML = data.peak_time;
 
-document.getElementById("total").innerHTML =
-data.total_kwh + " kWh"
+        if(!chart){
+            chart = new Chart(document.getElementById('chart'),{
+                type:'line',
+                data:{
+                    labels:data.times,
+                    datasets:[{
+                        label:"Power (kW)",
+                        data:data.power,
+                        tension:0.3,
+                        fill:true,
+                        backgroundColor:"rgba(0,150,255,0.2)",
+                        borderColor:"rgba(0,150,255,1)",
+                        pointRadius:0
+                    }]
+                },
+                options:{
+                    plugins:{legend:{display:false}},
+                    scales:{x:{ticks:{color:"white"}}, y:{ticks:{color:"white"}}}
+                }
+            });
+        } else {
+            chart.data.labels = data.times;
+            chart.data.datasets[0].data = data.power;
+            chart.update();
+        }
 
-document.getElementById("peak").innerHTML =
-data.peak + " kW"
-
-document.getElementById("peaktime").innerHTML =
-data.peak_time
-
-if(!chart){
-
-chart = new Chart(document.getElementById('chart'),{
-
-type:'line',
-
-data:{
-labels:data.times,
-datasets:[{
-label:"Power (kW)",
-data:data.power,
-tension:0.3
-}]
-},
-
-options:{
-plugins:{legend:{display:false}},
-scales:{
-x:{ticks:{color:"white"}},
-y:{ticks:{color:"white"}}
-}
-}
-
-})
-
-}else{
-
-chart.data.labels=data.times
-chart.data.datasets[0].data=data.power
-chart.update()
+    });
 
 }
 
-})
-
-}
-
-loadData()
-
-setInterval(loadData,300000)
+loadData();
+setInterval(loadData,300000); // refresh every 5 minutes
 
 </script>
 
 </body>
 </html>
 """)
+
 
 
 app.run(host="0.0.0.0", port=5000)
