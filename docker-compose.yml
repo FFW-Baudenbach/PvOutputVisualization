@@ -5,6 +5,11 @@ services:
     ports:
       - "5000:5000"
     restart: always
+    healthcheck:
+      test: curl --insecure --fail http://localhost:5000/health || exit 1
+      interval: 1m
+      timeout: 10s
+      retries: 3
     environment:
       - PVOUTPUT_SYSTEM_ID=112047
       - PVOUTPUT_API_KEY=<enterapikey>

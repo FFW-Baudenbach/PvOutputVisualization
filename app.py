@@ -100,6 +100,9 @@ def get_data():
 
         return cache
 
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok"})
 
 @app.route("/data")
 def data():
