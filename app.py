@@ -5,6 +5,7 @@ from flask import Flask, jsonify, render_template_string
 import requests
 import time
 import threading
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()  # load .env locally
@@ -14,6 +15,14 @@ SYSTEM_ID = os.environ.get("PVOUTPUT_SYSTEM_ID")
 
 if not API_KEY or not SYSTEM_ID:
     raise ValueError("PVOutput API_KEY or SYSTEM_ID not set")
+
+# Configure logging to stdout
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s'
+)
+
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -25,7 +34,7 @@ cache_lock = threading.Lock()
 def fetch_pvoutput():
     today = datetime.date.today().strftime("%Y%m%d")
 
-    print(f"[{datetime.datetime.now()}] Fetching PVOutput data...")
+    logger.info("Fetching PVOutput data...")
 
     headers = {
         "X-Pvoutput-Apikey": API_KEY,
