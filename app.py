@@ -201,7 +201,8 @@ def index():
 <html>
 <head>
 
-<title>PV Dashboard</title>
+<title>PV-Dashboard</title>
+<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
@@ -272,7 +273,10 @@ canvas{
 </head>
 <body>
 
-<h1>☀ PV-Produktion</h1>
+<h1 style="display: flex; align-items: center; justify-content: center; gap: 20px;">
+  <img src="{{ url_for('static', filename='pvlogo.png') }}" height="50" alt="PV Logo" />
+  PV-Produktion
+</h1>
 
 <div class="grid">
 
