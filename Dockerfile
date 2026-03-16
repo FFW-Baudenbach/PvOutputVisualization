@@ -1,6 +1,6 @@
 FROM python:3.14-slim
 
-# Create a non-root user
+# Create a non-root user and home directory
 RUN useradd -ms /bin/bash appuser
 
 # Install curl and clean up
@@ -9,20 +9,22 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 # Set working directory
 WORKDIR /app
 
-# Copy requirements first (for caching)
+# Copy requirements and install as non-root
 COPY requirements.txt .
-
-# Install Python packages globally (as root)
-RUN python -m pip install --no-cache-dir -r requirements.txt
 
 # Switch to non-root user
 USER appuser
 
-# Copy app code and static folder
-COPY app.py .
-COPY static/ ./static/
+# Install Python packages for this user
+RUN python -m pip install --user --no-cache-dir -r requirements.txt
+
+# Make sure local pip binaries are in PATH
+ENV PATH=/home/appuser/.local/bin:$PATH
+
+# Copy app code
+COPY --chown=appuser:appuser app/ .
 
 EXPOSE 5000
 
-# Run Flask app
+# Run Flask in threaded mode
 CMD ["python", "app.py", "--host=0.0.0.0"]
