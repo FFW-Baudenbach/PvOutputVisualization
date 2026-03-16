@@ -98,11 +98,11 @@ def fetch_pvoutput():
     return {
         "times": times,
         "powers_kwh": powers,
+        "current_kw": current_kw,
         "total_kwh": total_kwh,
-        "peak": peak_kw,
-        "peak_time": peak_time,
-        "current": current_kw,
-        "total_yesterday_kwh": total_yesterday_kwh
+        "total_yesterday_kwh": total_yesterday_kwh,
+        "peak_kw": peak_kw,
+        "peak_time": peak_time
     }
 
 
@@ -120,10 +120,10 @@ def get_mock_pv_data():
 
     # Example power values (kW), roughly PV-shaped curve
     power = [
-        0.0,0.5,1.0,2.0,3.0,4.2,5.5,6.8,
+        0.0,0.5,1.0,2.0,3.0,2.2,5.5,6.8,
         7.5,8.5,9.0,9.5,9.0,8.5,7.5,6.0,
-        4.5,3.2,2.0,1.2,0.7,0.5,0.4,0.3,
-        0.2,0.1,0.0
+        4.5,3.2,2.0,1.8,1.0,0.8,0.6,0.5,
+        0.3,0.3,0.1
     ]
 
     total_kwh = round(sum(power) * 0.5, 2)  # each slot = 0.5h
@@ -136,11 +136,11 @@ def get_mock_pv_data():
     return {
         "times": times,
         "powers_kwh": power,
+        "current_kw": current_kw,
         "total_kwh": total_kwh,
-        "peak": peak_kw,
-        "peak_time": peak_time,
-        "current": current_kw,
-        "total_yesterday_kwh": total_yesterday_kwh
+        "total_yesterday_kwh": total_yesterday_kwh,
+        "peak_kw": peak_kw,
+        "peak_time": peak_time
     }
 
 
@@ -321,9 +321,9 @@ function loadData(){
     })
     .then(data=>{
 
-        document.getElementById("current").innerHTML = formatNumber(data.current) + " kW";
+        document.getElementById("current").innerHTML = formatNumber(data.current_kw) + " kW";
         document.getElementById("total").innerHTML = formatNumber(data.total_kwh) + " kWh";
-        document.getElementById("peak").innerHTML = formatNumber(data.peak) + " kW um " + data.peak_time;
+        document.getElementById("peak").innerHTML = formatNumber(data.peak_kw) + " kW um " + data.peak_time;
         document.getElementById("total_yesterday").innerHTML = formatNumber(data.total_yesterday_kwh) + " kWh";
         document.getElementById("updated").innerHTML = "Letzte Aktualisierung: " + new Date().toLocaleTimeString("de-DE")
             + " / " + data.times[data.times.length - 1];;
@@ -336,7 +336,7 @@ function loadData(){
                     datasets:[{
                         label:"Power (kW)",
                         data:data.powers_kwh,
-                        tension:0.2,
+                        tension:0.3,
                         fill:true,
                         backgroundColor:"rgba(0,150,255,0.2)",
                         borderColor:"rgba(0,150,255,1)",
