@@ -14,7 +14,7 @@ load_dotenv()  # load .env locally
 API_KEY = os.environ.get("PVOUTPUT_API_KEY")
 SYSTEM_ID = os.environ.get("PVOUTPUT_SYSTEM_ID")
 USE_MOCK_DATA = os.environ.get("USE_MOCK_DATA", "").lower() == "true"
-APPLICATION_ROOT = os.environ.get("APPLICATION_ROOT", "/")
+X_PREFIX = os.environ.get("PROXYFIX_X_PREFIX", "false").lower() == "true"
 
 if not API_KEY or not SYSTEM_ID:
     raise ValueError("PVOutput API_KEY or SYSTEM_ID not set")
@@ -28,9 +28,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder="static", static_url_path=None, template_folder="templates")
-app.wsgi_app = ProxyFix(
-    app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
-)
+if X_PREFIX:
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1)
 
 cache = None
 cache_time = 0

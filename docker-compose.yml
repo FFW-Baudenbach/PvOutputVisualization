@@ -13,3 +13,4 @@ services:
     environment:
       - PVOUTPUT_SYSTEM_ID=112047
       - PVOUTPUT_API_KEY=<enterapikey>
+      #- PROXYFIX_X_PREFIX=true
