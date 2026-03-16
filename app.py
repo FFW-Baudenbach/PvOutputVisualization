@@ -33,6 +33,7 @@ cache_lock = threading.Lock()
 
 def fetch_pvoutput():
     today = datetime.date.today().strftime("%Y%m%d")
+    yesterday = (datetime.date.today() - datetime.timedelta(days=1)).strftime("%Y%m%d")
 
     logger.info("Fetching PVOutput data...")
 
@@ -41,9 +42,9 @@ def fetch_pvoutput():
         "X-Pvoutput-SystemId": SYSTEM_ID
     }
 
-    # ----- DAILY SUMMARY -----
+    # ----- TODAY SUMMARY -----
     r1 = requests.get(
-        f"https://pvoutput.org/service/r2/getoutput.jsp?d={today}",
+        f"https://pvoutput.org/service/r2/getoutput.jsp?df={today}&dt={today}",
         headers=headers
     )
 
@@ -54,6 +55,15 @@ def fetch_pvoutput():
     peak_time = summary[6]
 
     total_kwh = round(energy_wh / 1000, 2)
+
+    # ----- YESTERDAY SUMMARY -----
+    r1 = requests.get(
+        f"https://pvoutput.org/service/r2/getoutput.jsp?df={yesterday}&dt={yesterday}",
+        headers=headers
+    )
+
+    summary = r1.text.strip().split(",")
+    total_yesterday_kwh = round(float(summary[1]) / 1000, 2)
 
     # ----- INTERVAL DATA FOR GRAPH -----
     r2 = requests.get(
@@ -87,7 +97,8 @@ def fetch_pvoutput():
         "total_kwh": total_kwh,
         "peak": float(peak_w/1000),
         "peak_time": peak_time,
-        "current": float(current/1000)
+        "current": float(current/1000),
+        "total_yesterday_kwh": total_yesterday_kwh
     }
 
 
@@ -180,6 +191,10 @@ h1{
     max-width: 500px
 }
 
+.title{
+    font-size:18px;
+}
+
 .value{
     font-size:28px;
     font-weight:bold;
@@ -216,23 +231,23 @@ canvas{
 <div class="grid">
 
 <div class="card">
-<div>Aktuelle Leistung</div>
+<div class="title">Aktuelle Leistung</div>
 <div id="current" class="value">-</div>
 </div>
 
 <div class="card">
-<div>Tagesproduktion</div>
+<div class="title">Heute erzeugt</div>
 <div id="total" class="value">-</div>
 </div>
 
 <div class="card">
-<div>Spitzenleistung</div>
+<div class="title">Max. Leistung</div>
 <div id="peak" class="value">-</div>
 </div>
 
 <div class="card">
-<div>Spitzenzeit</div>
-<div id="peaktime" class="value">-</div>
+<div class="title">Gestern erzeugt</div>
+<div id="total_yesterday" class="value">-</div>
 </div>
 
 </div>
@@ -253,8 +268,8 @@ function loadData(){
 
         document.getElementById("current").innerHTML = data.current + " kW";
         document.getElementById("total").innerHTML = data.total_kwh + " kWh";
-        document.getElementById("peak").innerHTML = data.peak + " kW";
-        document.getElementById("peaktime").innerHTML = data.peak_time;
+        document.getElementById("peak").innerHTML = data.peak + " kW um " + data.peak_time;
+        document.getElementById("total_yesterday").innerHTML = data.total_yesterday_kwh + " kWh";
 
         if(!chart){
             chart = new Chart(document.getElementById('chart'),{
