@@ -11,6 +11,9 @@ To run you simply need either an `.env` file (for local development)
 ```
 PVOUTPUT_API_KEY=abcdef
 PVOUTPUT_SYSTEM_ID=112047
+USE_MOCK_DATA=true
 ```
 
 or inject the keys as environment variables, see [docker-compose.yml](docker-compose.yml).
+
+The mock data mode is used to not run into rate limiting during development.

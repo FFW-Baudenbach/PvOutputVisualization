@@ -12,6 +12,7 @@ load_dotenv()  # load .env locally
 
 API_KEY = os.environ.get("PVOUTPUT_API_KEY")
 SYSTEM_ID = os.environ.get("PVOUTPUT_SYSTEM_ID")
+USE_MOCK_DATA = os.environ.get("USE_MOCK_DATA", "").lower() == "true"
 
 if not API_KEY or not SYSTEM_ID:
     raise ValueError("PVOutput API_KEY or SYSTEM_ID not set")
@@ -105,6 +106,44 @@ def fetch_pvoutput():
     }
 
 
+def get_mock_pv_data():
+    """
+    Generate a hardcoded mock PV output data object
+    for testing the dashboard.
+    """
+    times = [
+        "07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30",
+        "11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30",
+        "15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30",
+        "19:00","19:30","20:00"
+    ]
+
+    # Example power values (kW), roughly PV-shaped curve
+    power = [
+        0.0,0.5,1.0,2.0,3.0,4.2,5.5,6.8,
+        7.5,8.5,9.0,9.5,9.0,8.5,7.5,6.0,
+        4.5,3.2,2.0,1.2,0.7,0.5,0.4,0.3,
+        0.2,0.1,0.0
+    ]
+
+    total_kwh = round(sum(power) * 0.5, 2)  # each slot = 0.5h
+    peak_kw = max(power)
+    peak_index = power.index(peak_kw)
+    peak_time = times[peak_index]
+    current_kw = power[-1]
+    total_yesterday_kwh = round(total_kwh * 0.9, 2)
+
+    return {
+        "times": times,
+        "powers_kwh": power,
+        "total_kwh": total_kwh,
+        "peak": peak_kw,
+        "peak_time": peak_time,
+        "current": current_kw,
+        "total_yesterday_kwh": total_yesterday_kwh
+    }
+
+
 def get_data():
     global cache, cache_time
     with cache_lock:
@@ -150,6 +189,8 @@ def health():
 
 @app.route("/data")
 def data():
+    if USE_MOCK_DATA:
+        return jsonify(get_mock_pv_data())
     return jsonify(get_data())
 
 
