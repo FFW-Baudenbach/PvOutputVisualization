@@ -1,204 +1,198 @@
-<!DOCTYPE html>
-<html>
-<head>
+<!doctype html>
+<html lang="de">
+    <head>
+        <title>PV-Dashboard</title>
+        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<title>PV-Dashboard</title>
-<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+        <style>
+            body {
+                background: #2d3036;
+                color: white;
+                font-family: Arial, serif;
+                text-align: center;
+                margin: 20px 50px 20px 50px;
+            }
 
-<style>
+            h1 {
+                margin-bottom: 30px;
+            }
 
-body{
-    background:#2D3036;
-    color:white;
-    font-family:Arial;
-    text-align:center;
-    margin: 20px 50px 20px 50px;
-}
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr); /* two columns */
+                gap: 30px; /* space between cards */
+                max-width: 1000px; /* max total width of both cards + gap */
+                margin: 0 auto 50px; /* center horizontally, 50px margin-bottom */
+            }
 
-h1{
-    margin-bottom:30px;
-}
+            .card {
+                background: #42454b;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+                max-width: 500px;
+            }
 
-.grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* two columns */
-    gap: 30px;                             /* space between cards */
-    max-width: 1000px;                       /* max total width of both cards + gap */
-    margin: 0 auto 50px;                    /* center horizontally, 50px margin-bottom */
-}
+            .title {
+                font-size: 18px;
+                margin-bottom: 8px;
+            }
 
-.card{
-    background:#42454B;
-    padding:20px;
-    border-radius:10px;
-    box-shadow:0 0 10px rgba(0,0,0,0.5);
-    max-width: 500px
-}
+            .value {
+                font-size: 28px;
+                font-weight: bold;
+            }
 
-.title{
-    font-size:18px;
-    margin-bottom: 8px;
-}
+            /* Chart container spans both cards */
+            .chart-container {
+                grid-column: 1 / -1;
+                margin: 0 auto 30px auto;
+                max-width: 1000px;
+            }
 
-.value{
-    font-size:28px;
-    font-weight:bold;
-}
+            canvas {
+                width: 100% !important;
+                height: 400px !important;
+            }
 
-/* Chart container spans both cards */
-.chart-container{
-    grid-column: 1 / -1;
-    margin: 0 auto 30px auto;
-    max-width: 1000px;
-}
-
-canvas{
-    width:100% !important;
-    height:400px !important;
-}
-
-@media (max-width: 600px){
-    .grid{
-        grid-template-columns: 1fr; /* stack cards on small screens */
-    }
-    .chart-container{
-        max-width: 100%;
-    }
-}
-
-</style>
-
-</head>
-<body>
-
-<h1 style="display: flex; align-items: center; justify-content: center; gap: 20px;">
-  <img src="{{ url_for('static', filename='pvlogo.png') }}" height="50" alt="PV Logo" />
-  PV-Produktion
-</h1>
-
-<div class="grid">
-
-<div class="card">
-<div class="title">Aktuelle Leistung</div>
-<div id="current" class="value">-</div>
-</div>
-
-<div class="card">
-<div class="title">Heute erzeugte Energie</div>
-<div id="total" class="value">-</div>
-</div>
-
-<div class="card">
-<div class="title">Heutige Spitzenleistung</div>
-<div id="peak" class="value">-</div>
-</div>
-
-<div class="card">
-<div class="title">Gestern erzeugte Energie</div>
-<div id="total_yesterday" class="value">-</div>
-</div>
-
-</div>
-
-<div class="chart-container">
-<canvas id="chart"></canvas>
-</div>
-
-<div id="updated" style="margin-top:10px;color:#aaa;font-size:14px"></div>
-
-<script>
-
-let chart;
-
-function formatNumber(n){
-    return Number(n).toLocaleString("de-DE", {maximumFractionDigits:2});
-}
-
-function loadData(){
-
-    fetch('data')
-    .then(r => {
-        if(!r.ok) throw new Error("HTTP " + r.status);
-        return r.json();
-    })
-    .then(data=>{
-
-        document.getElementById("current").innerHTML = formatNumber(data.current_kw) + " kW";
-        document.getElementById("total").innerHTML = formatNumber(data.total_kwh) + " kWh";
-        document.getElementById("peak").innerHTML = formatNumber(data.peak_kw) + " kW um " + data.peak_time;
-        document.getElementById("total_yesterday").innerHTML = formatNumber(data.total_yesterday_kwh) + " kWh";
-        document.getElementById("updated").innerHTML = "Letzte Aktualisierung: " + new Date().toLocaleTimeString("de-DE")
-            + " / " + data.times[data.times.length - 1];;
-
-        if(!chart){
-            chart = new Chart(document.getElementById('chart'),{
-                type:'line',
-                data:{
-                    labels:data.times,
-                    datasets:[{
-                        label:"Power (kW)",
-                        data:data.powers_kwh,
-                        tension:0.3,
-                        fill:true,
-                        backgroundColor:"rgba(0,150,255,0.2)",
-                        borderColor:"rgba(0,150,255,1)",
-                        pointRadius:0
-                    }]
-                },
-                options:{
-                    plugins:{legend:{display:false}},
-                    scales: {
-                        x: {
-                            ticks: {                             // x-axis labels
-                                color: "white",
-                                maxTicksLimit:12,
-                                autoSkip: true
-                            },
-                            grid: {
-                                color: "#42454B"                 // x-axis grid lines
-                            }
-                        },
-                        y: {
-                            beginAtZero:true,
-                            ticks: {                             // y-axis labels
-                                color: "white"
-                            },
-                            grid: {
-                                color: "#42454B"                 // y-axis grid lines
-                            },
-                            title: {
-                                display: true,
-                                text: "Leistung (kW)",
-                                color: "white"
-                            }
-                        }
-                    }
+            @media (max-width: 600px) {
+                .grid {
+                    grid-template-columns: 1fr; /* stack cards on small screens */
                 }
-            });
-        } else {
-            chart.data.labels = data.times;
-            chart.data.datasets[0].data = data.powers_kwh;
-            chart.update('none');
-        }
+                .chart-container {
+                    max-width: 100%;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <h1 style="display: flex; align-items: center; justify-content: center; gap: 20px">
+            <img src="{{ url_for('static', filename='pvlogo.png') }}" height="50" alt="PV Logo" />
+            PV-Produktion
+        </h1>
 
-    })
-    .catch(err => {
-        console.error("Fehler beim Laden der Daten:", err);
+        <div class="grid">
+            <div class="card">
+                <div class="title">Aktuelle Leistung</div>
+                <div id="current" class="value">-</div>
+            </div>
 
-        document.getElementById("updated").innerHTML =
-            "⚠ Fehler beim Laden der Daten – " +
-            new Date().toLocaleTimeString("de-DE");
-    });
+            <div class="card">
+                <div class="title">Heute erzeugte Energie</div>
+                <div id="total" class="value">-</div>
+            </div>
 
-}
+            <div class="card">
+                <div class="title">Heutige Spitzenleistung</div>
+                <div id="peak" class="value">-</div>
+            </div>
 
-loadData();
-setInterval(loadData,60000); // refresh every minute (caching in backend)
+            <div class="card">
+                <div class="title">Gestern erzeugte Energie</div>
+                <div id="total_yesterday" class="value">-</div>
+            </div>
+        </div>
 
-</script>
+        <div class="chart-container">
+            <canvas id="chart"></canvas>
+        </div>
 
-</body>
+        <div id="updated" style="margin-top: 10px; color: #aaa; font-size: 14px"></div>
+
+        <script>
+            let chart;
+
+            function formatNumber(n) {
+                return Number(n).toLocaleString("de-DE", { maximumFractionDigits: 2 });
+            }
+
+            function loadData() {
+                fetch("data")
+                    .then((r) => {
+                        if (!r.ok) throw new Error("HTTP " + r.status);
+                        return r.json();
+                    })
+                    .then((data) => {
+                        document.getElementById("current").innerHTML = formatNumber(data.current_kw) + " kW";
+                        document.getElementById("total").innerHTML = formatNumber(data.total_kwh) + " kWh";
+                        document.getElementById("peak").innerHTML =
+                            formatNumber(data.peak_kw) + " kW um " + data.peak_time;
+                        document.getElementById("total_yesterday").innerHTML =
+                            formatNumber(data.total_yesterday_kwh) + " kWh";
+                        document.getElementById("updated").innerHTML =
+                            "Letzte Aktualisierung: " +
+                            new Date().toLocaleTimeString("de-DE") +
+                            " / " +
+                            data.times[data.times.length - 1];
+
+                        if (!chart) {
+                            chart = new Chart(document.getElementById("chart"), {
+                                type: "line",
+                                data: {
+                                    labels: data.times,
+                                    datasets: [
+                                        {
+                                            label: "Power (kW)",
+                                            data: data.powers_kwh,
+                                            tension: 0.3,
+                                            fill: true,
+                                            backgroundColor: "rgba(0,150,255,0.2)",
+                                            borderColor: "rgba(0,150,255,1)",
+                                            pointRadius: 0,
+                                        },
+                                    ],
+                                },
+                                options: {
+                                    plugins: { legend: { display: false } },
+                                    scales: {
+                                        x: {
+                                            ticks: {
+                                                // x-axis labels
+                                                color: "white",
+                                                maxTicksLimit: 12,
+                                                autoSkip: true,
+                                            },
+                                            grid: {
+                                                color: "#42454B", // x-axis grid lines
+                                            },
+                                        },
+                                        y: {
+                                            beginAtZero: true,
+                                            ticks: {
+                                                // y-axis labels
+                                                color: "white",
+                                            },
+                                            grid: {
+                                                color: "#42454B", // y-axis grid lines
+                                            },
+                                            title: {
+                                                display: true,
+                                                text: "Leistung (kW)",
+                                                color: "white",
+                                            },
+                                        },
+                                    },
+                                },
+                            });
+                        } else {
+                            chart.data.labels = data.times;
+                            chart.data.datasets[0].data = data.powers_kwh;
+                            chart.update("none");
+                        }
+                    })
+                    .catch((err) => {
+                        console.error("Fehler beim Laden der Daten:", err);
+
+                        document.getElementById("updated").innerHTML =
+                            "⚠ Fehler beim Laden der Daten – " + new Date().toLocaleTimeString("de-DE");
+                    });
+            }
+
+            loadData();
+            setInterval(loadData, 60000); // refresh every minute (caching in backend)
+        </script>
+    </body>
 </html>
