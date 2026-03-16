@@ -1,12 +1,12 @@
 import datetime
-import os
-
-from flask import Flask, jsonify, render_template_string
-import requests
-import time
-import threading
 import logging
+import os
+import threading
+import time
+
+import requests
 from dotenv import load_dotenv
+from flask import Flask, jsonify, render_template_string
 
 load_dotenv()  # load .env locally
 
@@ -47,34 +47,37 @@ def fetch_pvoutput():
         f"https://pvoutput.org/service/r2/getoutput.jsp?df={today}&dt={today}",
         headers=headers
     )
+    r1.raise_for_status()
 
     summary = r1.text.strip().split(",")
 
     energy_wh = float(summary[1])
-    peak_w = float(summary[5])
+    peak_kw = float(summary[5]) / 1000
     peak_time = summary[6]
 
     total_kwh = round(energy_wh / 1000, 2)
 
     # ----- YESTERDAY SUMMARY -----
-    r1 = requests.get(
+    r2 = requests.get(
         f"https://pvoutput.org/service/r2/getoutput.jsp?df={yesterday}&dt={yesterday}",
         headers=headers
     )
+    r2.raise_for_status()
 
-    summary = r1.text.strip().split(",")
+    summary = r2.text.strip().split(",")
     total_yesterday_kwh = round(float(summary[1]) / 1000, 2)
 
     # ----- INTERVAL DATA FOR GRAPH -----
-    r2 = requests.get(
+    r3 = requests.get(
         f"https://pvoutput.org/service/r2/getstatus.jsp?d={today}&h=1&limit=288",
         headers=headers
     )
+    r3.raise_for_status()
 
     times = []
     powers = []
 
-    for line in r2.text.strip().split(";"):
+    for line in r3.text.strip().split(";"):
 
         parts = line.split(",")
 
@@ -82,22 +85,22 @@ def fetch_pvoutput():
             continue
 
         times.append(parts[1])
-        powers.append(float(parts[4]))
+        powers.append(float(parts[4]) / 1000)
 
     times.reverse()
     powers.reverse()
 
-    current = powers[-1] if powers else 0
+    current_kw = powers[-1] if powers else 0
 
     times, powers = trim_zero_edges(times, powers)
 
     return {
         "times": times,
-        "power": powers,
+        "powers_kwh": powers,
         "total_kwh": total_kwh,
-        "peak": float(peak_w/1000),
+        "peak": peak_kw,
         "peak_time": peak_time,
-        "current": float(current/1000),
+        "current": current_kw,
         "total_yesterday_kwh": total_yesterday_kwh
     }
 
@@ -158,6 +161,7 @@ def index():
 <head>
 
 <title>PV Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
@@ -193,6 +197,7 @@ h1{
 
 .title{
     font-size:18px;
+    margin-bottom: 8px;
 }
 
 .value{
@@ -226,7 +231,7 @@ canvas{
 </head>
 <body>
 
-<h1>☀ PV Produktion</h1>
+<h1>☀ PV-Produktion</h1>
 
 <div class="grid">
 
@@ -236,17 +241,17 @@ canvas{
 </div>
 
 <div class="card">
-<div class="title">Heute erzeugt</div>
+<div class="title">Heute erzeugte Energie</div>
 <div id="total" class="value">-</div>
 </div>
 
 <div class="card">
-<div class="title">Max. Leistung</div>
+<div class="title">Heutige Spitzenleistung</div>
 <div id="peak" class="value">-</div>
 </div>
 
 <div class="card">
-<div class="title">Gestern erzeugt</div>
+<div class="title">Gestern erzeugte Energie</div>
 <div id="total_yesterday" class="value">-</div>
 </div>
 
@@ -256,20 +261,31 @@ canvas{
 <canvas id="chart"></canvas>
 </div>
 
+<div id="updated" style="margin-top:10px;color:#aaa;font-size:14px"></div>
+
 <script>
 
 let chart;
 
+function formatNumber(n){
+    return Number(n).toLocaleString("de-DE", {maximumFractionDigits:2});
+}
+
 function loadData(){
 
     fetch('data')
-    .then(r=>r.json())
+    .then(r => {
+        if(!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+    })
     .then(data=>{
 
-        document.getElementById("current").innerHTML = data.current + " kW";
-        document.getElementById("total").innerHTML = data.total_kwh + " kWh";
-        document.getElementById("peak").innerHTML = data.peak + " kW um " + data.peak_time;
-        document.getElementById("total_yesterday").innerHTML = data.total_yesterday_kwh + " kWh";
+        document.getElementById("current").innerHTML = formatNumber(data.current) + " kW";
+        document.getElementById("total").innerHTML = formatNumber(data.total_kwh) + " kWh";
+        document.getElementById("peak").innerHTML = formatNumber(data.peak) + " kW um " + data.peak_time;
+        document.getElementById("total_yesterday").innerHTML = formatNumber(data.total_yesterday_kwh) + " kWh";
+        document.getElementById("updated").innerHTML = "Letzte Aktualisierung: " + new Date().toLocaleTimeString("de-DE")
+            + " / " + data.times[data.times.length - 1];;
 
         if(!chart){
             chart = new Chart(document.getElementById('chart'),{
@@ -278,8 +294,8 @@ function loadData(){
                     labels:data.times,
                     datasets:[{
                         label:"Power (kW)",
-                        data:data.power,
-                        tension:0.3,
+                        data:data.powers_kwh,
+                        tension:0.2,
                         fill:true,
                         backgroundColor:"rgba(0,150,255,0.2)",
                         borderColor:"rgba(0,150,255,1)",
@@ -290,15 +306,27 @@ function loadData(){
                     plugins:{legend:{display:false}},
                     scales: {
                         x: {
-                            ticks: { color: "white" },           // x-axis labels
+                            ticks: {                             // x-axis labels
+                                color: "white",   
+                                maxTicksLimit:12,
+                                autoSkip: true
+                            },
                             grid: {
                                 color: "#42454B"                 // x-axis grid lines
                             }
                         },
                         y: {
-                            ticks: { color: "white" },           // y-axis labels
+                            beginAtZero:true,
+                            ticks: {                             // y-axis labels
+                                color: "white" 
+                            },          
                             grid: {
                                 color: "#42454B"                 // y-axis grid lines
+                            },
+                            title: {
+                                display: true,
+                                text: "Leistung (kW)",
+                                color: "white"
                             }
                         }
                     }
@@ -306,16 +334,23 @@ function loadData(){
             });
         } else {
             chart.data.labels = data.times;
-            chart.data.datasets[0].data = data.power;
-            chart.update();
+            chart.data.datasets[0].data = data.powers_kwh;
+            chart.update('none');
         }
 
+    })
+    .catch(err => {
+        console.error("Fehler beim Laden der Daten:", err);
+
+        document.getElementById("updated").innerHTML =
+            "⚠ Fehler beim Laden der Daten – " +
+            new Date().toLocaleTimeString("de-DE");
     });
 
 }
 
 loadData();
-setInterval(loadData,300000); // refresh every 5 minutes
+setInterval(loadData,60000); // refresh every minute (caching in backend)
 
 </script>
 
