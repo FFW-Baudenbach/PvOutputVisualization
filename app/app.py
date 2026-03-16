@@ -25,7 +25,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__, static_folder="static", static_url_path="/static", template_folder="templates")
+app = Flask(__name__, static_folder="static", static_url_path=None, template_folder="templates")
 
 cache = None
 cache_time = 0
