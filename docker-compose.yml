@@ -12,5 +12,5 @@ services:
       retries: 3
     environment:
       - PVOUTPUT_SYSTEM_ID=112047
-      - PVOUTPUT_API_KEY=<enterapikey>
+      - PVOUTPUT_API_KEY=<enterapikey> #readonly key is enough
       #- PROXYFIX_X_PREFIX=true
