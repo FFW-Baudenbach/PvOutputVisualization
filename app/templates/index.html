@@ -109,6 +109,19 @@
                 return Number(n).toLocaleString("de-DE", { maximumFractionDigits: 2 });
             }
 
+            // Hilfsfunktion: "HH:mm" → Minuten seit Mitternacht
+            function timeToMinutes(t) {
+                const [h, m] = t.split(":").map(Number);
+                return h * 60 + m;
+            }
+
+            // Hilfsfunktion: Minuten → "HH:mm"
+            function minutesToTime(m) {
+                const h = Math.floor(m / 60);
+                const min = m % 60;
+                return `${h.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
+            }
+
             function loadData() {
                 fetch("data")
                     .then((r) => {
@@ -128,15 +141,20 @@
                             " / " +
                             data.times[data.times.length - 1];
 
+                        // x = Minuten seit Mitternacht
+                        const chartData = data.times.map((t, i) => ({
+                            x: timeToMinutes(t),
+                            y: data.powers_kwh[i],
+                        }));
+
                         if (!chart) {
                             chart = new Chart(document.getElementById("chart"), {
                                 type: "line",
                                 data: {
-                                    labels: data.times,
                                     datasets: [
                                         {
                                             label: "Power (kW)",
-                                            data: data.powers_kwh,
+                                            data: chartData,
                                             tension: 0.3,
                                             fill: true,
                                             backgroundColor: "rgba(0,150,255,0.2)",
@@ -149,50 +167,37 @@
                                     plugins: { legend: { display: false } },
                                     scales: {
                                         x: {
+                                            type: "linear",
                                             ticks: {
-                                                // x-axis labels
                                                 color: "white",
+                                                callback: (val) => minutesToTime(val),
                                                 maxTicksLimit: 12,
-                                                autoSkip: true,
                                             },
-                                            grid: {
-                                                color: "#42454B", // x-axis grid lines
-                                            },
+                                            grid: { color: "#42454B" },
                                         },
                                         y: {
                                             beginAtZero: true,
-                                            ticks: {
-                                                // y-axis labels
-                                                color: "white",
-                                            },
-                                            grid: {
-                                                color: "#42454B", // y-axis grid lines
-                                            },
-                                            title: {
-                                                display: true,
-                                                text: "Leistung (kW)",
-                                                color: "white",
-                                            },
+                                            ticks: { color: "white" },
+                                            grid: { color: "#42454B" },
+                                            title: { display: true, text: "Leistung (kW)", color: "white" },
                                         },
                                     },
                                 },
                             });
                         } else {
-                            chart.data.labels = data.times;
-                            chart.data.datasets[0].data = data.powers_kwh;
+                            chart.data.datasets[0].data = chartData;
                             chart.update("none");
                         }
                     })
                     .catch((err) => {
                         console.error("Fehler beim Laden der Daten:", err);
-
                         document.getElementById("updated").innerHTML =
                             "⚠ Fehler beim Laden der Daten – " + new Date().toLocaleTimeString("de-DE");
                     });
             }
 
             loadData();
-            setInterval(loadData, 60000); // refresh every minute (caching in backend)
+            setInterval(loadData, 60000); // jede Minute aktualisieren
         </script>
     </body>
 </html>
