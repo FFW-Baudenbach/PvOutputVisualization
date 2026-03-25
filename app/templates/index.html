@@ -168,10 +168,18 @@
                                     scales: {
                                         x: {
                                             type: "linear",
+                                            min: 300,   // 05:00
+                                            max: 1320,  // 22:00
                                             ticks: {
                                                 color: "white",
-                                                callback: (val) => minutesToTime(val),
-                                                maxTicksLimit: 12,
+                                                callback: (val) => minutesToTime(val)
+                                            },
+                                            afterBuildTicks: (axis) => { // every 2h hours
+                                                const ticks = [];
+                                                for (let i = 300; i <= 1320; i += 120) {
+                                                    ticks.push({ value: i });
+                                                }
+                                                axis.ticks = ticks;
                                             },
                                             grid: { color: "#42454B" },
                                         },
